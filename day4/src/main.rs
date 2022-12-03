@@ -20,5 +20,17 @@ fn main() {
         current_guess += 1;
     }
 
-    println!("Result: {}", current_guess);
+    println!("Part 1 result: {}", current_guess);
+
+    // We don't reset current_guess since we're now looking for more zeroes and we would not have skipped a solution to this part above
+    while !format!(
+        "{:x}",
+        md5::compute(args.input.clone() + &current_guess.to_string())
+    )
+    .starts_with("000000")
+    {
+        current_guess += 1;
+    }
+
+    println!("Part 2 result: {}", current_guess);
 }
