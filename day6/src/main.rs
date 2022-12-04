@@ -47,6 +47,16 @@ fn main() {
         .count();
 
     println!("Number of lights on: {}", lights_on);
+
+    let total_brightness: u32 = (0..=999)
+        .flat_map(|x: u32| {
+            let x = x.clone();
+            let runs = &runs;
+            (0..=999).map(move |y: u32| get_light_brightness(runs, (x, y)))
+        })
+        .sum();
+
+    println!("Total brightness: {}", total_brightness);
 }
 
 fn is_light_on(runs: &Vec<LightRun>, light: (u32, u32)) -> bool {
@@ -62,6 +72,27 @@ fn is_light_on(runs: &Vec<LightRun>, light: (u32, u32)) -> bool {
                 false
             } else {
                 !acc
+            }
+        })
+}
+
+fn get_light_brightness(runs: &Vec<LightRun>, light: (u32, u32)) -> u32 {
+    runs.iter()
+        .filter(|r| {
+            r.start.0 <= light.0 && r.start.1 <= light.1 && r.end.0 >= light.0 && r.end.1 >= light.1
+        })
+        .map(|r| r.action)
+        .fold(0, |acc, action| {
+            if action == Action::On {
+                acc + 1
+            } else if action == Action::Off {
+                if acc > 0 {
+                    acc - 1
+                } else {
+                    acc
+                }
+            } else {
+                acc + 2
             }
         })
 }
