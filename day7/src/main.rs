@@ -14,7 +14,7 @@ struct Args {
     data_file: String,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 enum Operator {
     None,
     AND,
@@ -43,7 +43,6 @@ fn main() {
     let file = File::open(&args.data_file).expect("Failed to open file");
     let reader = BufReader::new(file);
 
-    let mut resolved_wires: HashMap<String, u16> = HashMap::new();
     let mut unresolved_wires: Vec<Wire> = Vec::new();
     for line in reader.lines() {
         let line = line.expect("Failed to read line");
@@ -55,16 +54,16 @@ fn main() {
             let operand_value = operand_string.parse();
 
             let wire_name = components.get(2).unwrap().to_string();
-            if operand_value.is_ok() {
-                resolved_wires.insert(wire_name, operand_value.unwrap());
-            } else {
-                unresolved_wires.push(Wire {
-                    operator: Operator::None,
-                    left_operand: Operand::Wire(operand_string.to_string()),
-                    right_operand: Operand::Immediate(0),
-                    target: wire_name,
-                });
-            }
+            unresolved_wires.push(Wire {
+                operator: Operator::None,
+                left_operand: if let Ok(value) = operand_value {
+                    Operand::Immediate(value)
+                } else {
+                    Operand::Wire(operand_string.to_string())
+                },
+                right_operand: Operand::Immediate(0),
+                target: wire_name,
+            });
         } else if components.len() == 4 {
             // NOT
             let wire_name = components.get(3).unwrap().to_string();
@@ -105,55 +104,66 @@ fn main() {
         }
     }
 
+    let resolved_wires = resolve_all_wires(&unresolved_wires);
+
+    let a = *resolved_wires.get("a").unwrap();
+    println!("Wire a is {}", a);
+
+    println!("Overriding b with {}", a);
+    let b_wire = unresolved_wires
+        .iter_mut()
+        .find(|wire| wire.target == "b")
+        .unwrap();
+    b_wire.left_operand = Operand::Immediate(a);
+    b_wire.operator = Operator::None;
+    b_wire.right_operand = Operand::Immediate(0);
+    let resolved_wires = resolve_all_wires(&unresolved_wires);
+
+    let a = *resolved_wires.get("a").unwrap();
+    println!("Wire a is {}", a);
+}
+
+fn resolve_all_wires(unresolved_wires: &Vec<Wire>) -> HashMap<String, u16> {
+    let mut resolved_wires: HashMap<String, u16> = HashMap::new();
     while !resolved_wires.contains_key("a") {
-        for wire in unresolved_wires.iter_mut() {
+        for wire in unresolved_wires.iter() {
             if resolved_wires.contains_key(&wire.target) {
                 continue;
             }
-            match &wire.left_operand {
+            let left_value = match &wire.left_operand {
                 Operand::Wire(left) => {
                     if resolved_wires.contains_key(left) {
-                        wire.left_operand = Operand::Immediate(*resolved_wires.get(left).unwrap());
+                        *resolved_wires.get(left).unwrap()
                     } else {
                         continue;
                     }
                 }
-                Operand::Immediate(_) => (),
-            }
+                Operand::Immediate(value) => *value,
+            };
 
-            match &wire.right_operand {
+            let right_value = match &wire.right_operand {
                 Operand::Wire(right) => {
                     if resolved_wires.contains_key(right) {
-                        wire.right_operand =
-                            Operand::Immediate(*resolved_wires.get(right).unwrap());
+                        *resolved_wires.get(right).unwrap()
                     } else {
                         continue;
                     }
                 }
-                Operand::Immediate(_) => (),
-            }
+                Operand::Immediate(value) => *value,
+            };
 
-            resolved_wires.insert(wire.target.clone(), resolve_wire(wire));
+            resolved_wires.insert(
+                wire.target.clone(),
+                resolve_wire(wire.operator, left_value, right_value),
+            );
         }
     }
 
-    println!("Wire a is {}", resolved_wires.get("a").unwrap());
+    resolved_wires
 }
 
-fn resolve_wire(wire: &Wire) -> u16 {
-    let left_value = if let Operand::Immediate(left_value) = wire.left_operand {
-        left_value
-    } else {
-        panic!("Unexpected value")
-    };
-
-    let right_value = if let Operand::Immediate(right_value) = wire.right_operand {
-        right_value
-    } else {
-        panic!("Unexpected value")
-    };
-
-    let resolution = match wire.operator {
+fn resolve_wire(operator: Operator, left_value: u16, right_value: u16) -> u16 {
+    let resolution = match operator {
         Operator::AND => left_value.bitand(right_value),
         Operator::OR => left_value.bitor(right_value),
         Operator::LSHIFT => left_value.shl(right_value),
