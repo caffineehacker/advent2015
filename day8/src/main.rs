@@ -17,24 +17,54 @@ fn main() {
     let file = File::open(&args.data_file).expect("Failed to open file");
     let reader = BufReader::new(file);
 
-    let mut code_length = 0;
-    let mut representation_length = 0;
+    let lines: Vec<String> = reader
+        .lines()
+        .map(|l| l.expect("Failed to read line"))
+        .collect();
 
-    for line in reader.lines() {
-        let line = line.expect("Failed to read line");
-        code_length += line.chars().count();
+    let mut encoded_length = 0;
+    let mut storage_length = 0;
 
-        let parsed_line = parse_line(&line);
+    for line in lines.iter() {
+        encoded_length += line.chars().count();
+
+        let parsed_line = parse_line_part1(&line);
         println!("\"{}\" -> \"{}\"", line, parsed_line);
-        representation_length += parsed_line.chars().count();
+        storage_length += parsed_line.chars().count();
     }
 
-    println!("Code length: {}", code_length);
-    println!("Storage size: {}", representation_length);
-    println!("Diff: {}", code_length - representation_length);
+    println!("Part 1");
+    println!("Enoded length: {}", encoded_length);
+    println!("Storage size: {}", storage_length);
+    println!("Diff: {}", encoded_length - storage_length);
+
+    println!("-----------------------");
+
+    storage_length = 0;
+    encoded_length = 0;
+    for line in lines.iter() {
+        storage_length += line.chars().count();
+
+        let encoded_line = encode_line_part2(&line);
+        println!("\"{}\" -> \"{}\"", line, encoded_line);
+        encoded_length += encoded_line.chars().count();
+    }
+
+    println!("Part 2");
+    println!("Encoded length: {}", encoded_length);
+    println!("Storage size: {}", storage_length);
+    println!("Diff: {}", encoded_length - storage_length);
 }
 
-fn parse_line(line: &str) -> String {
+fn encode_line_part2(line: &str) -> String {
+    let line = line.to_string();
+    let line = line.replace("\\", "\\\\");
+    let line = line.replace("\"", "\\\"");
+
+    "\"".to_string() + &line + "\""
+}
+
+fn parse_line_part1(line: &str) -> String {
     let mut line = line.get(1..(line.len() - 1)).unwrap().to_string();
 
     let mut starting_point = 0;
