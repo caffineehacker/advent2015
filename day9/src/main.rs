@@ -46,12 +46,70 @@ fn main() {
 
     let shortest_distance = find_shortest_distance(&cities, &edges);
     println!("Shortest distance: {}", shortest_distance);
+
+    let longest_distance = find_longest_distance(&cities, &edges);
+    println!("Longest distance: {}", longest_distance);
 }
 
 struct SearchState {
     remaining_cities: Vec<String>,
     current_city: String,
     distance_traveled: u32,
+}
+
+fn find_longest_distance(cities: &HashSet<String>, edges: &HashMap<(String, String), u32>) -> u32 {
+    // Now we want to use A* to do minimal work until we find a solution
+    let mut search_states: Vec<SearchState> = cities
+        .iter()
+        .map(|c| SearchState {
+            current_city: c.clone(),
+            remaining_cities: cities.iter().filter(|ic| **ic != *c).cloned().collect(),
+            distance_traveled: 0,
+        })
+        .collect();
+
+    loop {
+        if search_states
+            .iter()
+            .all(|state| state.remaining_cities.is_empty())
+        {
+            return search_states
+                .iter()
+                .max_by(|a, b| a.distance_traveled.cmp(&b.distance_traveled))
+                .unwrap()
+                .distance_traveled;
+        }
+
+        let (current_index, current_state) = search_states
+            .iter_mut()
+            .enumerate()
+            .filter(|state| !state.1.remaining_cities.is_empty())
+            .nth(0)
+            .unwrap();
+
+        if current_state.remaining_cities.is_empty() {
+            return current_state.distance_traveled;
+        }
+
+        let mut new_states: Vec<SearchState> = current_state
+            .remaining_cities
+            .iter()
+            .enumerate()
+            .map(|(rc_index, c)| {
+                let mut remaining_cities = current_state.remaining_cities.clone();
+                remaining_cities.remove(rc_index);
+                SearchState {
+                    current_city: c.clone(),
+                    remaining_cities,
+                    distance_traveled: current_state.distance_traveled
+                        + edges[&(current_state.current_city.clone(), c.clone())],
+                }
+            })
+            .collect();
+
+        search_states.remove(current_index);
+        search_states.append(&mut new_states);
+    }
 }
 
 fn find_shortest_distance(cities: &HashSet<String>, edges: &HashMap<(String, String), u32>) -> u32 {
