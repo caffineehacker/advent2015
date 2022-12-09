@@ -20,7 +20,24 @@ fn main() {
         );
     }
 
-    println!("Length is {}", state.iter().map(|s| s.0).sum::<u32>());
+    println!(
+        "After 40 cycles length is {}",
+        state.iter().map(|s| s.0).sum::<u32>()
+    );
+
+    for step in 0..10 {
+        state = rle(state);
+        println!(
+            "Step {}, length {}",
+            step + 40,
+            state.iter().map(|s| s.0).sum::<u32>()
+        );
+    }
+
+    println!(
+        "After 50 cycles length is {}",
+        state.iter().map(|s| s.0).sum::<u32>()
+    );
 }
 
 fn string_to_rle(input: String) -> Vec<(u32, u32)> {
