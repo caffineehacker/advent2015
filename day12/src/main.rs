@@ -12,6 +12,7 @@ struct Args {
     data_file: String,
 }
 
+#[derive(PartialEq, Eq)]
 enum JSONValue {
     Null,
     String(String),
@@ -56,7 +57,8 @@ fn main() {
     // I could use an existing JSON parser, but where's the fun in that?
     let json_object = parse_json(&data.chars().collect(), 0).1;
 
-    println!("{}", sum(&json_object));
+    println!("Part 1: {}", sum(&json_object));
+    println!("Part 2: {}", sum_part2(&json_object));
 }
 
 fn sum(value: &JSONValue) -> i32 {
@@ -66,6 +68,28 @@ fn sum(value: &JSONValue) -> i32 {
         JSONValue::Number(n) => *n,
         JSONValue::Object(o) => o.iter().map(|e| sum(e.1)).sum(),
         JSONValue::Array(arr) => arr.iter().map(|e| sum(e)).sum(),
+        JSONValue::Bool(_) => todo!(),
+    }
+}
+
+fn sum_part2(value: &JSONValue) -> i32 {
+    match value {
+        JSONValue::Null => todo!(),
+        JSONValue::String(_) => 0,
+        JSONValue::Number(n) => *n,
+        JSONValue::Object(o) => {
+            if o.iter().any(|e| {
+                if let JSONValue::String(s) = e.1 {
+                    s == "red"
+                } else {
+                    false
+                }
+            }) {
+                return 0;
+            }
+            o.iter().map(|e| sum_part2(e.1)).sum()
+        }
+        JSONValue::Array(arr) => arr.iter().map(|e| sum_part2(e)).sum(),
         JSONValue::Bool(_) => todo!(),
     }
 }
