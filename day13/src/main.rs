@@ -1,4 +1,5 @@
 use clap::Parser;
+use rayon::prelude::*;
 use std::{
     collections::{HashMap, HashSet},
     fs::File,
@@ -10,6 +11,8 @@ use std::{
 struct Args {
     #[arg(long)]
     data_file: String,
+    #[arg(long)]
+    include_me: bool,
 }
 
 #[derive(Clone)]
@@ -24,42 +27,49 @@ fn main() {
     let file = File::open(&args.data_file).expect("Failed to open file");
     let reader = BufReader::new(file);
 
-    let preferences: HashMap<(String, String), i32> = reader
+    let mut preferences: HashMap<(String, String), i32> = reader
         .lines()
         .map(|line| line.expect("Failed to parse line"))
         .map(parse_preferences)
         .collect();
 
-    let names: HashSet<String> = preferences.keys().map(|k| k.0.to_string()).collect();
+    let mut names: HashSet<String> = preferences.keys().map(|k| k.0.to_string()).collect();
+    if args.include_me {
+        names.iter().for_each(|n| {
+            preferences.insert(("MEEEE".to_string(), n.to_string()), 0);
+            preferences.insert((n.to_string(), "MEEEE".to_string()), 0);
+        });
+        names.insert("MEEEE".to_string());
+    }
     let mut states = vec![State {
         ordering: Vec::new(),
         remaining: names.clone(),
     }];
 
-    while let Some((index, state)) = states
-        .iter()
-        .enumerate()
-        .filter(|s| s.1.remaining.len() > 0)
-        .last()
-    {
-        let state = state.clone();
-        states.remove(index);
-
-        for person in state.remaining.iter() {
-            let mut ordering = state.ordering.clone();
-            ordering.push(person.clone());
-            let mut remaining = state.remaining.clone();
-            remaining.remove(person);
-            states.push(State {
-                ordering,
-                remaining,
-            });
-        }
+    while states[0].remaining.len() > 0 {
+        states = states
+            .par_iter()
+            .flat_map(|s| {
+                s.remaining
+                    .iter()
+                    .map(|person| {
+                        let mut ordering = s.ordering.clone();
+                        ordering.push(person.clone());
+                        let mut remaining = s.remaining.clone();
+                        remaining.remove(person);
+                        State {
+                            ordering,
+                            remaining,
+                        }
+                    })
+                    .collect::<Vec<State>>()
+            })
+            .collect();
     }
 
     // Now states contains only final states
     let best_state_score: i32 = states
-        .iter()
+        .par_iter()
         .map(|state| {
             score_state(&state.ordering, &preferences)
                 + score_state(
