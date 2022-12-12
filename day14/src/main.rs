@@ -1,5 +1,6 @@
 use clap::Parser;
 use std::{
+    collections::HashMap,
     fs::File,
     io::{BufRead, BufReader},
 };
@@ -35,7 +36,48 @@ fn main() {
 
     let total_time = args.time;
 
-    let distances: Vec<u32> = raindeer
+    let distances: Vec<u32> = get_distances_at_time(&raindeer, total_time)
+        .values()
+        .cloned()
+        .collect();
+
+    println!("Winning distance: {}", distances.iter().max().unwrap());
+
+    let mut overall_score = HashMap::new();
+    for raindeer_winner in
+        (1..=total_time).flat_map(|t| get_leaders(get_distances_at_time(&raindeer, t)))
+    {
+        if overall_score.contains_key(raindeer_winner) {
+            let raindeer_score = overall_score.get_mut(raindeer_winner).unwrap();
+            *raindeer_score += 1;
+        } else {
+            overall_score.insert(raindeer_winner, 1);
+        }
+    }
+
+    let (best_raindeer, best_score) = overall_score.iter().max_by_key(|r| *r.1).unwrap();
+
+    println!(
+        "Best overall score (part 2): {} = {}",
+        best_raindeer, best_score
+    );
+}
+
+fn get_leaders<'a>(results: HashMap<&'a str, u32>) -> Vec<&'a str> {
+    let max_value = *results.iter().max_by_key(|r| r.1).unwrap().1;
+
+    results
+        .iter()
+        .filter(|r| *r.1 == max_value)
+        .map(|r| *r.0)
+        .collect()
+}
+
+fn get_distances_at_time<'a>(
+    raindeer: &'a Vec<Raindeer>,
+    total_time: u32,
+) -> HashMap<&'a str, u32> {
+    raindeer
         .iter()
         .map(|r| {
             let full_periods = total_time / (r.stamina + r.rest);
@@ -46,11 +88,12 @@ fn main() {
                 r.speed * remainder
             };
 
-            partial_period_distance + (full_periods * r.stamina * r.speed)
+            (
+                r.name.as_str(),
+                partial_period_distance + (full_periods * r.stamina * r.speed),
+            )
         })
-        .collect();
-
-    println!("Winning distance: {}", distances.iter().max().unwrap())
+        .collect()
 }
 
 fn parse_raindeer(input: String) -> Raindeer {
