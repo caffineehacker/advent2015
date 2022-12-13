@@ -84,6 +84,23 @@ fn main() {
     }
 
     println!("Recipe score: {}", best_score);
+
+    let best_limited_calorie_recipe = states
+        .par_iter()
+        .filter(|s| {
+            s.ingredients
+                .iter()
+                .map(|i| i.0.calories * i.1)
+                .sum::<i64>()
+                == 500
+        })
+        .max_by_key(|s| score_recipe(s))
+        .unwrap();
+
+    println!(
+        "Best limited calorie recipe score: {}",
+        score_recipe(best_limited_calorie_recipe)
+    );
 }
 
 fn score_recipe(recipe: &Recipe) -> i64 {
