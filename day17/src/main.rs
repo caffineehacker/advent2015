@@ -35,4 +35,21 @@ fn main() {
         .sum();
 
     println!("Valid combinations for 150 liters: {}", valid_combinations);
+
+    let valid_combinations_minimal_count: usize = (1..=containers.len())
+        .map(|k| {
+            containers
+                .iter()
+                .combinations(k)
+                .filter(|c| c.iter().cloned().sum::<u32>() == eggnog_count)
+                .count()
+        })
+        .filter(|count| *count > 0)
+        .nth(0)
+        .unwrap();
+
+    println!(
+        "Valid minimal combinations for 150 liters: {}",
+        valid_combinations_minimal_count
+    );
 }
