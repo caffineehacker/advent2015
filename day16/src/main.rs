@@ -26,7 +26,7 @@ struct Sue {
 }
 
 impl Sue {
-    fn partially_equal(&self, other: &Self) -> bool {
+    fn part1_partially_equal(&self, other: &Self) -> bool {
         if self.children.is_some()
             && other.children.is_some()
             && self.children.unwrap() != other.children.unwrap()
@@ -95,6 +95,77 @@ impl Sue {
 
         true
     }
+
+    // The target should be the self
+    fn part2_partially_equal(&self, other: &Self) -> bool {
+        if self.children.is_some()
+            && other.children.is_some()
+            && self.children.unwrap() != other.children.unwrap()
+        {
+            return false;
+        }
+
+        if self.cats.is_some() && other.cats.is_some() && self.cats.unwrap() >= other.cats.unwrap()
+        {
+            return false;
+        }
+
+        if self.samoyeds.is_some()
+            && other.samoyeds.is_some()
+            && self.samoyeds.unwrap() != other.samoyeds.unwrap()
+        {
+            return false;
+        }
+
+        if self.pomeranians.is_some()
+            && other.pomeranians.is_some()
+            && self.pomeranians.unwrap() <= other.pomeranians.unwrap()
+        {
+            return false;
+        }
+
+        if self.akitas.is_some()
+            && other.akitas.is_some()
+            && self.akitas.unwrap() != other.akitas.unwrap()
+        {
+            return false;
+        }
+
+        if self.vizslas.is_some()
+            && other.vizslas.is_some()
+            && self.vizslas.unwrap() != other.vizslas.unwrap()
+        {
+            return false;
+        }
+
+        if self.goldfish.is_some()
+            && other.goldfish.is_some()
+            && self.goldfish.unwrap() <= other.goldfish.unwrap()
+        {
+            return false;
+        }
+
+        if self.trees.is_some()
+            && other.trees.is_some()
+            && self.trees.unwrap() >= other.trees.unwrap()
+        {
+            return false;
+        }
+
+        if self.cars.is_some() && other.cars.is_some() && self.cars.unwrap() != other.cars.unwrap()
+        {
+            return false;
+        }
+
+        if self.perfumes.is_some()
+            && other.perfumes.is_some()
+            && self.perfumes.unwrap() != other.perfumes.unwrap()
+        {
+            return false;
+        }
+
+        true
+    }
 }
 
 fn main() {
@@ -122,16 +193,27 @@ fn main() {
         .map(parse_sue)
         .collect();
 
-    let matching_sue_number = sues
+    let part1_matching_sue_number = sues
         .iter()
         .enumerate()
-        .filter(|s| target_sue.partially_equal(s.1))
+        .filter(|s| target_sue.part1_partially_equal(s.1))
         .last()
         .unwrap()
         .0
         + 1;
 
-    println!("Part 1 matching sue number: {}", matching_sue_number);
+    println!("Part 1 matching sue number: {}", part1_matching_sue_number);
+
+    let part2_matching_sue_number = sues
+        .iter()
+        .enumerate()
+        .filter(|s| target_sue.part2_partially_equal(s.1))
+        .last()
+        .unwrap()
+        .0
+        + 1;
+
+    println!("Part 2 matching sue number: {}", part2_matching_sue_number);
 }
 
 fn parse_sue(line: String) -> Sue {
