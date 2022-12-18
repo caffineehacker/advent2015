@@ -1,7 +1,8 @@
 use clap::Parser;
 use multimap::MultiMap;
+use rayon::prelude::*;
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{BinaryHeap, HashMap, HashSet},
     fs::File,
     io::{BufRead, BufReader},
 };
@@ -48,9 +49,19 @@ fn main() {
     );
 
     do_part1(&converters, &input);
+    do_part2(&converters, &input, &vec![mappings["e"]]);
 }
 
 fn do_part1(converters: &MultiMap<u32, Vec<u32>>, input: &Vec<u32>) {
+    let elements = get_elements_from_one_conversion(converters, input);
+
+    println!("Unique elements from one conversion: {}", elements.len());
+}
+
+fn get_elements_from_one_conversion(
+    converters: &MultiMap<u32, Vec<u32>>,
+    input: &Vec<u32>,
+) -> HashSet<Vec<u32>> {
     let mut elements = HashSet::new();
 
     for i in 0..input.len() {
@@ -65,7 +76,62 @@ fn do_part1(converters: &MultiMap<u32, Vec<u32>>, input: &Vec<u32>) {
         }
     }
 
-    println!("Unique elements from one conversion: {}", elements.len());
+    elements
+}
+
+fn get_elements_from_one_conversion_part2(
+    converters: &HashMap<Vec<u32>, u32>,
+    input: &Vec<u32>,
+) -> HashSet<Vec<u32>> {
+    let longest_convert = converters.keys().map(|k| k.len()).max().unwrap();
+    let mut elements = HashSet::new();
+    for i in 0..input.len() {
+        for j in i..=(i + longest_convert).min(input.len() - 1) {
+            if i + j >= input.len() {
+                break;
+            }
+
+            if let Some(c) = converters.get(&input[i..=j].to_vec()) {
+                let mut result = input[0..i].to_vec();
+                result.push(*c);
+                result.append(&mut input[(j + 1)..].to_vec());
+                elements.insert(result);
+            }
+        }
+    }
+
+    elements
+}
+
+fn do_part2(converters: &MultiMap<u32, Vec<u32>>, target: &Vec<u32>, starting_element: &Vec<u32>) {
+    let mut seen_states = HashSet::new();
+    seen_states.insert(target.clone());
+
+    let mut current_states = BinaryHeap::new();
+    current_states.push((1000 - target.len(), target.clone(), 0));
+
+    let converters: HashMap<Vec<u32>, u32> = converters
+        .iter_all()
+        .flat_map(|(k, vs)| vs.iter().map(|v| (v.clone(), *k)))
+        .collect();
+
+    while !current_states.is_empty() {
+        let current_state = current_states.pop().unwrap();
+
+        let mut new_states: BinaryHeap<(usize, Vec<u32>, u32)> =
+            get_elements_from_one_conversion_part2(&converters, &current_state.1)
+                .into_iter()
+                .map(|s| (1000 - s.len(), s, current_state.2 + 1))
+                .filter(|m| seen_states.insert(m.1.clone()))
+                .collect();
+
+        if let Some(s) = new_states.iter().find(|s| *s.1 == *starting_element) {
+            println!("Part 2: {}", s.2);
+            return;
+        }
+
+        current_states.append(&mut new_states);
+    }
 }
 
 fn parse_conversion(
