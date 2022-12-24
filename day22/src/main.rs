@@ -13,6 +13,8 @@ struct Args {
     hp: i32,
     #[arg(long)]
     mana: i32,
+    #[arg(long)]
+    hard: bool,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone)]
@@ -55,6 +57,13 @@ fn main() {
         }
 
         // START MY TURN
+
+        if args.hard {
+            state.hp -= 1;
+            if state.hp <= 0 {
+                continue;
+            }
+        }
 
         if state.recharge_time > 0 {
             state.mana += 101;
