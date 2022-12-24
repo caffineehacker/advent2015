@@ -11,6 +11,8 @@ struct Args {
     data_file: String,
     #[arg(long)]
     debug: bool,
+    #[arg(long)]
+    start_a: u32,
 }
 
 enum Register {
@@ -71,7 +73,7 @@ fn main() {
         .collect();
 
     let mut pc = 0;
-    let mut register_a: u32 = 0;
+    let mut register_a: u32 = args.start_a;
     let mut register_b: u32 = 0;
     while pc < instructions.len() {
         match &instructions[pc] {
